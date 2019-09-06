@@ -42,7 +42,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".Activities.Intentservice"
+        <service android:name=".Activities.GeoCoderService"
             android:exported="false"
             />
     </application>

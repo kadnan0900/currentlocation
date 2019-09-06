@@ -52,8 +52,8 @@ public class LocationHelper {
                     mlocation = location;
                     listner.onLocationChange(location);
 
-                    Toast.makeText(mContext.getApplicationContext(), mlocation.getLatitude() + "" + mlocation.getLongitude(),
-                            Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(mContext.getApplicationContext(), mlocation.getLatitude() + "" + mlocation.getLongitude(),
+//                            Toast.LENGTH_SHORT).show();
                 }
             }
         });

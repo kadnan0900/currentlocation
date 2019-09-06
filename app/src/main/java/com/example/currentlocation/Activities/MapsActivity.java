@@ -1,24 +1,22 @@
 package com.example.currentlocation.Activities;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
-
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-
 import com.example.currentlocation.R;
+import com.example.currentlocation.extras.Constants;
 import com.example.currentlocation.interfaces.onLocationListner;
 import com.example.currentlocation.utils.LocationHelper;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -27,83 +25,77 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 
-import java.io.IOException;
-import java.util.List;
-
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
 
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
+{
     private GoogleMap mMap;
     private MapView mapView;
+    private TextView address;
+    public AddressResultReceiver mResultReceiver;
+    private String mAddressOutput;
     private GoogleMap.OnCameraIdleListener onCameraIdleListener;
-    private TextView resutText;
     private static final int Request_code = 101;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         initViews(savedInstanceState);
         checkLocationPermission();
-
-        Intent intent=new Intent(this,Intentservice.class);
-        startService(intent);
-        resutText = (TextView) findViewById(R.id.dragg_result);
-//        configureCameraIdle();
-}
-
-    private void initViews(Bundle savedInstanceState) {
-        mapView = findViewById(R.id.mapview);
-        mapView.onCreate(savedInstanceState);
-        mapView.getMapAsync(this);
+        configureCameraIdle();
     }
 
-//    private void configureCameraIdle() {
-//        onCameraIdleListener = new GoogleMap.OnCameraIdleListener() {
-//            @Override
-//            public void onCameraIdle() {
-//
-//                LatLng latLng = mMap.getCameraPosition().target;
-//                Geocoder geocoder = new Geocoder(MapsActivity.this);
-//
-//                try {
-//                    List<Address> addressList = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1);
-//                    if (addressList != null && addressList.size() > 0) {
-//                        String locality = addressList.get(0).getAddressLine(0);
-////                        String country = addressList.get(0).getCountryName();
-//                        if (!locality.isEmpty() ) {
-//                            resutText.setText(locality + "  ");
-//                        }
-//                    }
-//
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//
-//            }
-//        };
-//    }
+    private void initViews(Bundle savedInstanceState)
+
+    {
+        mapView = findViewById(R.id.mapview);
+        address = (TextView) findViewById(R.id.dragg_result);
+        mapView.onCreate(savedInstanceState);
+       mapView.getMapAsync(this );
+    }
+
+    private void configureCameraIdle()
+
+    {
+                onCameraIdleListener = new GoogleMap.OnCameraIdleListener()
+        {
+            @Override
+            public void onCameraIdle()
+            {
+                LatLng location = mMap.getCameraPosition().target;
+                //launch intent service
+                startIntentService(location);
+
+            }
+        };
+    }
+
+    private void startIntentService(LatLng mlatlng)
+    {
+
+        Intent intent = new Intent(this, GeoCoderService.class);
+        mResultReceiver = new AddressResultReceiver (new Handler());
+        intent.putExtra (Constants.Receiver_key, mResultReceiver);
+        intent.putExtra(Constants.LOCATION_KEY,mlatlng);
+        startService (intent);
+    }
 
 
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
-    public void onMapReady(final GoogleMap googleMap) {
+    public void onMapReady(final GoogleMap googleMap)
+    {
+
         mMap=googleMap;
         googleMap.getUiSettings().setMyLocationButtonEnabled(true);
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    Activity#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for Activity#requestPermissions for more details.
             return;
         }
         googleMap.setMyLocationEnabled(true);
         mMap.setOnCameraIdleListener(onCameraIdleListener);
-
 
        new LocationHelper(this, new onLocationListner() {
             @Override
@@ -181,4 +173,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onDestroy();
         mapView.onDestroy();
     }
+
+
+    private class AddressResultReceiver extends ResultReceiver {
+
+        public AddressResultReceiver(Handler handler)
+        {
+            super(handler);
+        }
+
+        @Override
+        protected void onReceiveResult(int resultCode, Bundle resultData)
+        {
+            super.onReceiveResult(resultCode, resultData);
+
+            //Display the address string
+            //or error message sent from Intent service
+            mAddressOutput = resultData.getString(Constants.Result_key);
+            displayAddressOutput();
+
+        }
+    }
+
+    private void displayAddressOutput()
+    {
+        address.setText(mAddressOutput);
+    }
+
+
 }
